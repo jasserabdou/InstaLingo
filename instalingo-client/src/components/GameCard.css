@@ -1,0 +1,84 @@
+.game-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background-color: white;
+  box-shadow: var(--box-shadow);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+  height: 100%;
+}
+
+.game-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.game-card-image-container {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.game-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-speed);
+}
+
+.game-card:hover .game-card-image {
+  transform: scale(1.05);
+}
+
+.difficulty-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.difficulty-easy {
+  background-color: var(--secondary-color);
+}
+
+.difficulty-medium {
+  background-color: #f0ad4e;
+}
+
+.difficulty-hard {
+  background-color: var(--accent-color);
+}
+
+.game-card-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.game-card-title {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.4rem;
+}
+
+.game-card-description {
+  color: #666;
+  flex-grow: 1;
+  margin-bottom: 20px;
+}
+
+.game-card-btn {
+  align-self: flex-start;
+  background-color: var(--primary-color);
+  transition: all var(--transition-speed);
+}
+
+.game-card-btn:hover {
+  background-color: darken(var(--primary-color), 10%);
+}

@@ -1,0 +1,139 @@
+.translation-history-item {
+  padding: 16px;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-left: 4px solid #3498db;
+}
+
+.translation-history-item.pending {
+  background-color: #f8f9fa;
+  border-left-color: #f39c12;
+}
+
+.translation-history-item.deleting {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+  border-left-color: #e74c3c;
+}
+
+.translation-history-content {
+  flex: 1;
+}
+
+.translation-text-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.translation-source,
+.translation-target {
+  flex: 1;
+}
+
+.translation-arrow {
+  margin: 0 16px;
+  color: #7f8c8d;
+  font-size: 20px;
+}
+
+.language-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.translation-source p,
+.translation-target p {
+  margin: 4px 0 0;
+  word-break: break-word;
+}
+
+.translation-metadata {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #95a5a6;
+}
+
+.translation-timestamp {
+  margin-right: 10px;
+}
+
+.pending-indicator {
+  color: #f39c12;
+  font-weight: 500;
+}
+
+.deleting-indicator {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.translation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.reuse-button,
+.delete-button {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.reuse-button {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.reuse-button:hover:not(:disabled) {
+  background-color: #27ae60;
+}
+
+.delete-button {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.delete-button:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.reuse-button:disabled,
+.delete-button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .translation-text-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .translation-arrow {
+    transform: rotate(90deg);
+    margin: 10px 0;
+  }
+  
+  .translation-actions {
+    flex-direction: row;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
