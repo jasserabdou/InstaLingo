@@ -29,9 +29,8 @@ const VirtualList = ({
     () => items.length * itemHeight,
     [items.length, itemHeight]
   );
-
   // Calculate which items to render based on scroll position
-  const { visibleItems, visibleStartIndex, visibleEndIndex } = useMemo(() => {
+  const { visibleItems, visibleStartIndex } = useMemo(() => {
     const start = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
     const end = Math.min(
       items.length - 1,
@@ -40,7 +39,7 @@ const VirtualList = ({
 
     return {
       visibleStartIndex: start,
-      visibleEndIndex: end,
+      // visibleEndIndex removed as it's not being used
       visibleItems: items.slice(start, end + 1),
     };
   }, [items, scrollTop, windowHeight, itemHeight, overscan]);

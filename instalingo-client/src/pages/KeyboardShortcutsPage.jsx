@@ -11,7 +11,6 @@ import {
   TableRow,
   Box,
   Skeleton,
-  Divider,
 } from "@mui/material";
 import { getKeyboardShortcuts } from "../services/translationService";
 

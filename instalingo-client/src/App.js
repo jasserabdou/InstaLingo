@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import Layout from "./components/Layout";
 import LoadingIndicator from "./components/LoadingIndicator";
-import ErrorFallback from "./components/ErrorFallback";
 import initializeTranslationStorage from "./utils/localStorage-init";
 import "./App.css";
 

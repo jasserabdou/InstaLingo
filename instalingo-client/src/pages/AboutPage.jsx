@@ -8,7 +8,6 @@ import {
   Divider,
   Card,
   CardContent,
-  Link as MuiLink,
   Button,
 } from "@mui/material";
 import { Link } from "react-router-dom";

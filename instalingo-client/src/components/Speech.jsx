@@ -20,7 +20,6 @@ const languageMap = {
 export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
   const [listening, setListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
-
   useEffect(() => {
     // Initialize speech recognition
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -54,7 +53,7 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
         recognition.abort();
       }
     };
-  }, []);
+  }, [onTranscript, recognition]);
 
   // Update language when it changes
   useEffect(() => {
