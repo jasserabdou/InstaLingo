@@ -1,18 +1,9 @@
-import websocketService from './websocketService';
+// LocalStorage key for storing translations
+const STORAGE_KEY = "instalingo-translations";
 
 class TranslationHistoryService {
   constructor() {
-    this.historyEventType = 'translation-history';
-    this.setupWebSocketListeners();
-  }
-
-  setupWebSocketListeners() {
-    // Listen for history updates from server
-    websocketService.on(this.historyEventType, (data) => {
-      if (this.onHistoryUpdateCallback) {
-        this.onHistoryUpdateCallback(data);
-      }
-    });
+    this.historyEventType = "translation-history";
   }
 
   onHistoryUpdate(callback) {
@@ -21,64 +12,97 @@ class TranslationHistoryService {
 
   async getTranslationHistory(userId, limit = 50, offset = 0) {
     try {
-      // API call to get history
-      const response = await fetch(`/api/translations/history?userId=${userId}&limit=${limit}&offset=${offset}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch translation history');
+      // Get from localStorage
+      const storedData = localStorage.getItem(STORAGE_KEY);
+
+      let translations = [];
+      if (storedData) {
+        try {
+          translations = JSON.parse(storedData);
+        } catch (parseError) {
+          localStorage.removeItem(STORAGE_KEY); // Clear corrupted data
+          return { translations: [], total: 0, hasMore: false };
+        }
       }
-      
-      return await response.json();
+
+      // Filter by userId if provided, otherwise return all
+      if (userId) {
+        translations = translations.filter((item) => item.userId === userId);
+      }
+
+      // Sort by timestamp descending
+      translations.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      // Paginate
+      const paginatedTranslations = translations.slice(offset, offset + limit);
+
+      return {
+        translations: paginatedTranslations,
+        total: translations.length,
+        hasMore: offset + limit < translations.length,
+      };
     } catch (error) {
-      console.error('Error fetching translation history:', error);
-      throw error;
+      return { translations: [], total: 0, hasMore: false };
     }
   }
-
   saveTranslation(translation) {
-    // Send the translation to be saved via WebSocket for real-time updates
-    websocketService.send(this.historyEventType, {
-      action: 'add',
-      item: {
-        ...translation,
-        timestamp: new Date().toISOString()
-      }
-    });
+    // Create a copy with a proper ID if missing
+    const translationToSave = {
+      ...translation,
+      id: translation.id || `tr_${Date.now()}`,
+    };
 
-    // Also save via API for persistence
-    return fetch('/api/translations/history', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(translation),
-    });
+    // Save to localStorage
+    try {
+      const storedData = localStorage.getItem(STORAGE_KEY);
+      const allTranslations = storedData ? JSON.parse(storedData) : [];
+      // Add new translation at the beginning of the array
+      allTranslations.unshift(translationToSave);
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allTranslations));
+    } catch (error) {
+      // Just fail silently if localStorage is not available
+    }
+
+    return Promise.resolve({ success: true, translation: translationToSave });
   }
 
   deleteTranslationHistory(id) {
-    // Send delete action via WebSocket for real-time updates
-    websocketService.send(this.historyEventType, {
-      action: 'delete',
-      id
-    });
+    // Delete from localStorage
+    try {
+      const storedData = localStorage.getItem(STORAGE_KEY);
+      if (storedData) {
+        const allTranslations = JSON.parse(storedData).filter(
+          (item) => item.id !== id
+        );
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(allTranslations));
+      }
+    } catch (error) {
+      // Just fail silently if localStorage is not available
+    }
 
-    // Also delete via API
-    return fetch(`/api/translations/history/${id}`, {
-      method: 'DELETE',
-    });
+    return Promise.resolve({ success: true });
   }
 
   clearAllHistory(userId) {
-    // Send clear action via WebSocket
-    websocketService.send(this.historyEventType, {
-      action: 'clear',
-      userId
-    });
+    // Clear from localStorage (only for specified user)
+    try {
+      const storedData = localStorage.getItem(STORAGE_KEY);
+      if (storedData) {
+        const otherUsersTranslations = JSON.parse(storedData).filter(
+          (item) => item.userId !== userId
+        );
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(otherUsersTranslations)
+        );
+      }
+    } catch (error) {
+      // Just fail silently if localStorage is not available
+    }
 
-    // Also clear via API
-    return fetch(`/api/translations/history/user/${userId}`, {
-      method: 'DELETE',
-    });
+    return Promise.resolve({ success: true });
   }
 }
 

@@ -8,6 +8,9 @@ from flask_caching import Cache
 import os
 import secrets
 import traceback
+import torch
+import time
+from functools import lru_cache
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -36,39 +39,105 @@ session_limiter = Limiter(
     app=app, key_func=get_rate_limit_key, default_limits=["200 per day", "50 per hour"]
 )
 
-cache = Cache(config={"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600})
+# Configure cache with more advanced settings
+cache_config = {
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_DEFAULT_TIMEOUT": 3600,
+    "CACHE_THRESHOLD": 1000,  # Maximum number of items the cache will store
+}
+cache = Cache(config=cache_config)
 cache.init_app(app)
 
 # Define model variables but don't load immediately
 model_name = "facebook/m2m100_418M"
 model = None
 tokenizer = None
+model_loaded_time = None
+MODEL_MAX_AGE = 3600  # Unload model after 1 hour of inactivity to save memory
+
+# Track last usage time for model unloading
+last_model_usage = time.time()
 
 
-# Lazy loading function for the model
+# Lazy loading function for the model with quantization
 def load_model():
     """
-    Loads the translation model and tokenizer into global variables.
+    Loads the translation model and tokenizer into global variables with optimization.
 
-    This function initializes the global `model` and `tokenizer` variables by
-    loading a pre-trained translation model and its corresponding tokenizer
-    using the specified `model_name`. If the model is already loaded, the
-    function does nothing. Logs the loading process and handles any exceptions
-    that occur during the loading.
-
-    Raises:
-        Exception: If an error occurs while loading the model or tokenizer.
+    This implementation adds model quantization to reduce memory usage and improve
+    performance. It also implements a model lifecycle management system to unload
+    the model after a period of inactivity.
     """
-    global model, tokenizer
+    global model, tokenizer, model_loaded_time, last_model_usage
     if model is None:
         try:
             logger.info(f"Loading model {model_name}...")
+            start_time = time.time()
+
+            # Load model with quantization for reduced memory usage
             model = M2M100ForConditionalGeneration.from_pretrained(model_name)
+
+            # Apply quantization if running on CPU (quantized models run faster on CPU)
+            if not torch.cuda.is_available():
+                logger.info("Applying model quantization to optimize CPU usage")
+                model = torch.quantization.quantize_dynamic(
+                    model, {torch.nn.Linear}, dtype=torch.qint8
+                )
+
             tokenizer = M2M100Tokenizer.from_pretrained(model_name)
-            logger.info("Model loaded successfully")
+            load_time = time.time() - start_time
+            model_loaded_time = time.time()
+            logger.info(f"Model loaded successfully in {load_time:.2f} seconds")
         except Exception as e:
             logger.error(f"Error loading model: {str(e)}")
             raise RuntimeError(f"Failed to load translation model: {str(e)}")
+
+    # Update last usage time
+    last_model_usage = time.time()
+    return model, tokenizer
+
+
+def check_model_timeout():
+    """Unload model if it hasn't been used for the maximum age period"""
+    global model, tokenizer
+    if model is not None and time.time() - last_model_usage > MODEL_MAX_AGE:
+        logger.info(f"Unloading model due to inactivity ({MODEL_MAX_AGE} seconds)")
+        model = None
+        tokenizer = None
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+
+
+# Add LRU cache for recent translations to avoid recomputing the same translations
+@lru_cache(maxsize=100)
+def cached_translate(text, source_lang_code, target_lang_code):
+    """Cache translation results for frequently requested text"""
+    global model, tokenizer
+
+    # Ensure model is loaded
+    if model is None:
+        load_model()
+
+    # Set source language
+    tokenizer.src_lang = source_lang_code
+
+    # Tokenize
+    encoded = tokenizer(text, return_tensors="pt")
+
+    # Generate translation with more efficient parameters
+    generated_tokens = model.generate(
+        **encoded,
+        forced_bos_token_id=tokenizer.get_lang_id(target_lang_code),
+        max_length=min(128, len(text) + 50),  # Adaptive max length
+        num_beams=2 if len(text) > 100 else 4,  # Adaptive beam search
+        early_stopping=True,
+    )
+
+    # Decode translation
+    translated_text = tokenizer.batch_decode(
+        generated_tokens, skip_special_tokens=True
+    )[0]
+
+    return translated_text
 
 
 # Validate request parameters
@@ -148,10 +217,12 @@ def index():
 
 @app.route("/translate", methods=["POST"])
 @session_limiter.limit("10/minute")
+@cache.cached(timeout=600, key_prefix=lambda: f"translate_{str(request.json).strip()}")
 def translate():
     """
     Handles translation requests by processing input text, detecting the source language (if set to auto),
     and translating the text into the target language using a pre-trained model.
+    Added caching and performance optimizations.
     """
     start_time = datetime.now()
 
@@ -176,15 +247,8 @@ def translate():
             logger.warning(f"Validation error: {error_message}")
             return jsonify({"error": error_message}), 400
 
-        # Load model if not already loaded
-        global model, tokenizer
-        if model is None:
-            try:
-                load_model()
-            except Exception as e:
-                error_msg = f"Failed to load translation model: {str(e)}"
-                logger.error(error_msg)
-                return jsonify({"error": error_msg}), 500
+        # Check model timeout on each request
+        check_model_timeout()
 
         # Convert to M2M100 language codes
         target_lang_code = LANGUAGE_MAP.get(target_lang)
@@ -214,27 +278,10 @@ def translate():
             source_lang_code = "en"  # Default to English if detection fails
             detected_language_name = "Unknown (defaulting to English)"
 
-        # Perform translation
+        # Perform translation with caching
         try:
-            logger.info(f"Setting source language code to: {source_lang_code}")
-            tokenizer.src_lang = source_lang_code
-
-            logger.info(f"Tokenizing input text")
-            encoded = tokenizer(text, return_tensors="pt")
-
-            logger.info(
-                f"Generating translation with target language: {target_lang_code}"
-            )
-            generated_tokens = model.generate(
-                **encoded,
-                forced_bos_token_id=tokenizer.get_lang_id(target_lang_code),
-                max_length=128,
-            )
-
-            logger.info("Decoding translation")
-            translated_text = tokenizer.batch_decode(
-                generated_tokens, skip_special_tokens=True
-            )[0]
+            # Use the cached translation function
+            translated_text = cached_translate(text, source_lang_code, target_lang_code)
 
             # Calculate processing time
             processing_time = (datetime.now() - start_time).total_seconds()
@@ -298,6 +345,45 @@ def server_error(e):
     """
     logger.error(f"Server error: {str(e)}")
     return render_template("500.html"), 500
+
+
+# Add new endpoint to get model status
+@app.route("/api/model-status", methods=["GET"])
+def model_status():
+    """Return current status of the translation model"""
+    global model, model_loaded_time
+
+    if model is None:
+        status = "unloaded"
+        load_time = None
+    else:
+        status = "loaded"
+        load_time = model_loaded_time
+
+    return jsonify(
+        {
+            "status": status,
+            "load_time": load_time,
+            "last_used": last_model_usage if model is not None else None,
+            "memory_usage": (
+                f"{torch.cuda.memory_allocated() / 1024**2:.2f}MB"
+                if torch.cuda.is_available()
+                else "N/A"
+            ),
+        }
+    )
+
+
+# Add endpoint to get available languages with codes
+@app.route("/api/languages", methods=["GET"])
+def get_languages():
+    """Return available languages for translation"""
+    return jsonify(
+        {
+            "languages": [{"name": k, "code": v} for k, v in LANGUAGE_MAP.items()],
+            "detected_languages": DETECTED_LANGUAGE_NAMES,
+        }
+    )
 
 
 if __name__ == "__main__":

@@ -79,6 +79,20 @@
   font-weight: 500;
 }
 
+.error-indicator {
+  color: #ff4d4f;
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+.translation-history-item.error {
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+  text-align: center;
+  padding: 20px;
+}
+
 .translation-actions {
   display: flex;
   flex-direction: column;
@@ -125,12 +139,12 @@
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .translation-arrow {
     transform: rotate(90deg);
     margin: 10px 0;
   }
-  
+
   .translation-actions {
     flex-direction: row;
     margin-left: 0;

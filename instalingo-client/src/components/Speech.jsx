@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { IconButton, Tooltip } from '@mui/material';
-import MicIcon from '@mui/icons-material/Mic';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import React, { useState, useEffect } from "react";
+import { IconButton, Tooltip } from "@mui/material";
+import MicIcon from "@mui/icons-material/Mic";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 
 // Language code mapping
 const languageMap = {
@@ -23,31 +23,32 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
 
   useEffect(() => {
     // Initialize speech recognition
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognitionInstance = new SpeechRecognition();
-      
+
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = false;
-      
+
       recognitionInstance.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         onTranscript(transcript);
         setListening(false);
       };
-      
+
       recognitionInstance.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
+        console.error("Speech recognition error", event.error);
         setListening(false);
       };
-      
+
       recognitionInstance.onend = () => {
         setListening(false);
       };
-      
+
       setRecognition(recognitionInstance);
     }
-    
+
     return () => {
       if (recognition) {
         recognition.abort();
@@ -59,7 +60,7 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
   useEffect(() => {
     if (recognition && language) {
       // Use correct language code or fallback to English
-      recognition.lang = languageMap[language] || 'en-US';
+      recognition.lang = languageMap[language] || "en-US";
     }
   }, [language, recognition]);
 
@@ -69,15 +70,15 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
         recognition.start();
         setListening(true);
       } catch (error) {
-        console.error('Could not start recognition:', error);
+        console.error("Could not start recognition:", error);
       }
     }
   };
 
   return (
     <Tooltip title="Record speech for translation">
-      <IconButton 
-        onClick={startListening} 
+      <IconButton
+        onClick={startListening}
         disabled={disabled || listening || !recognition}
         color={listening ? "secondary" : "primary"}
         aria-label="Record speech for translation"
@@ -100,7 +101,7 @@ export const TextToSpeech = ({ text, language }) => {
     };
 
     loadVoices();
-    
+
     // Chrome loads voices asynchronously
     if (speechSynthesis.onvoiceschanged !== undefined) {
       speechSynthesis.onvoiceschanged = loadVoices;
@@ -109,23 +110,23 @@ export const TextToSpeech = ({ text, language }) => {
 
   const findVoiceForLanguage = (langCode) => {
     // Try to find exact match first
-    let voice = voices.find(v => v.lang === langCode);
-    
+    let voice = voices.find((v) => v.lang === langCode);
+
     // Try to find a voice that starts with the language code
     if (!voice) {
-      voice = voices.find(v => v.lang.startsWith(langCode.split('-')[0]));
+      voice = voices.find((v) => v.lang.startsWith(langCode.split("-")[0]));
     }
-    
+
     // Fallback to any voice for that language
     if (!voice) {
-      voice = voices.find(v => v.lang.includes(langCode.split('-')[0]));
+      voice = voices.find((v) => v.lang.includes(langCode.split("-")[0]));
     }
-    
+
     // Last resort fallback to English
     if (!voice) {
-      voice = voices.find(v => v.lang.startsWith('en'));
+      voice = voices.find((v) => v.lang.startsWith("en"));
     }
-    
+
     return voice;
   };
 
@@ -134,18 +135,18 @@ export const TextToSpeech = ({ text, language }) => {
 
     // Cancel any ongoing speech
     speechSynthesis.cancel();
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
-    const langCode = languageMap[language] || 'en-US';
+    const langCode = languageMap[language] || "en-US";
     const voice = findVoiceForLanguage(langCode);
-    
+
     if (voice) {
       utterance.voice = voice;
     } else {
       // If no suitable voice found, just set the language
       utterance.lang = langCode;
     }
-    
+
     utterance.rate = 1;
     utterance.pitch = 1;
 
@@ -160,14 +161,14 @@ export const TextToSpeech = ({ text, language }) => {
     utterance.onerror = () => {
       setIsSpeaking(false);
     };
-    
+
     speechSynthesis.speak(utterance);
   };
 
   return (
     <Tooltip title="Listen to translation">
-      <IconButton 
-        onClick={speakText} 
+      <IconButton
+        onClick={speakText}
         disabled={!text || !speechSynthesis}
         color={isSpeaking ? "secondary" : "primary"}
         aria-label="Listen to translation"

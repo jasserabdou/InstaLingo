@@ -72,13 +72,13 @@
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .nav-menu {
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   .user-actions {
     width: 100%;
     justify-content: center;

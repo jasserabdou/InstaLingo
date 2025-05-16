@@ -1,0 +1,115 @@
+.translator-container {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.text-area-container {
+  transition: all 0.2s ease;
+}
+
+.text-area-container:focus-within {
+  transform: translateY(-2px);
+}
+
+/* Animation for history link when updated */
+@keyframes pulseHistory {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.history-updated {
+  animation: pulseHistory 0.5s ease-in-out 3;
+  color: #4caf50 !important;
+  font-weight: bold !important;
+}
+
+/* Custom animated placeholder for loading state */
+@keyframes translatePlaceholder {
+  0% {
+    background-position: -500px 0;
+  }
+  100% {
+    background-position: 500px 0;
+  }
+}
+
+.translating-placeholder {
+  position: relative;
+  overflow: hidden;
+}
+
+.translating-placeholder::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: translatePlaceholder 2s infinite linear;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .text-area-container {
+    margin-bottom: 16px;
+  }
+
+  .keyboard-shortcuts {
+    display: none;
+  }
+}
+
+/* Accessibility focus styles */
+:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Animation for successful actions */
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-action {
+  animation: successPulse 0.3s ease-in-out;
+}
+
+/* Make sure buttons have proper hover states */
+button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .translator-container * {
+    forced-color-adjust: none;
+  }
+
+  .keyboard-shortcuts {
+    border: 1px solid CanvasText;
+  }
+}
