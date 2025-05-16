@@ -8,7 +8,7 @@ const reactProcess = spawn("npm", ["start"], {
 });
 
 // Start Flask backend
-const flaskProcess = spawn("python", ["../translation-app/app.py"], {
+const flaskProcess = spawn("python", ["../Backend/app.py"], {
   stdio: "inherit",
   shell: true,
 });

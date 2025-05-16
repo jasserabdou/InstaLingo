@@ -3,11 +3,11 @@ echo Starting InstaLingo Application...
 echo.
 
 echo Starting Flask backend server...
-start cmd /k "cd translation-app && python app.py"
+start cmd /k "cd Backend && python app.py"
 
 echo.
 echo Starting React frontend...
-start cmd /k "cd instalingo-client && npm start"
+start cmd /k "cd Fortend && npm start"
 
 echo.
 echo InstaLingo is running!

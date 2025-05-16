@@ -48,6 +48,13 @@ cache_config = {
 cache = Cache(config=cache_config)
 cache.init_app(app)
 
+
+# Health check endpoint for Docker
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+
 # Define model variables but don't load immediately
 model_name = "facebook/m2m100_418M"
 model = None
