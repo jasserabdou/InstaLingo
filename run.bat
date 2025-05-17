@@ -7,7 +7,7 @@ start cmd /k "cd Backend && python app.py"
 
 echo.
 echo Starting React frontend...
-start cmd /k "cd Fortend && npm start"
+start cmd /k "cd Fortend && npm install && npm start"
 
 echo.
 echo InstaLingo is running!

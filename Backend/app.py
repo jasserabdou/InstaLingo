@@ -121,30 +121,52 @@ def cached_translate(text, source_lang_code, target_lang_code):
     global model, tokenizer
 
     # Ensure model is loaded
-    if model is None:
-        load_model()
+    if model is None or tokenizer is None:
+        try:
+            load_model()
+            # Double-check that model and tokenizer are loaded
+            if model is None or tokenizer is None:
+                logger.error("Failed to load translation model or tokenizer")
+                raise RuntimeError("Translation model could not be loaded")
+        except Exception as e:
+            logger.error(f"Error loading model: {str(e)}")
+            raise RuntimeError(f"Error loading translation model: {str(e)}")
+    
+    try:
+        # Special handling for Arabic
+        if source_lang_code == "ar" or target_lang_code == "ar":
+            logger.info(f"Processing Arabic translation: src={source_lang_code}, tgt={target_lang_code}")
+        
+        # Check if source language is valid
+        if source_lang_code not in tokenizer.lang_code_to_id:
+            logger.warning(f"Unknown source language code: {source_lang_code}, defaulting to English")
+            source_lang_code = "en"
+            
+        # Set source language
+        tokenizer.src_lang = source_lang_code
+            
+        # Tokenize
+        encoded = tokenizer(text, return_tensors="pt")
 
-    # Set source language
-    tokenizer.src_lang = source_lang_code
+        # Generate translation with more efficient parameters
+        generated_tokens = model.generate(
+            **encoded,
+            forced_bos_token_id=tokenizer.get_lang_id(target_lang_code),
+            max_length=min(128, len(text) + 50),  # Adaptive max length
+            num_beams=2 if len(text) > 100 else 4,  # Adaptive beam search
+            early_stopping=True,
+        )
 
-    # Tokenize
-    encoded = tokenizer(text, return_tensors="pt")
+        # Decode translation
+        translated_text = tokenizer.batch_decode(
+            generated_tokens, skip_special_tokens=True
+        )[0]
 
-    # Generate translation with more efficient parameters
-    generated_tokens = model.generate(
-        **encoded,
-        forced_bos_token_id=tokenizer.get_lang_id(target_lang_code),
-        max_length=min(128, len(text) + 50),  # Adaptive max length
-        num_beams=2 if len(text) > 100 else 4,  # Adaptive beam search
-        early_stopping=True,
-    )
-
-    # Decode translation
-    translated_text = tokenizer.batch_decode(
-        generated_tokens, skip_special_tokens=True
-    )[0]
-
-    return translated_text
+        return translated_text
+        
+    except Exception as e:
+        logger.error(f"Translation processing error: {str(e)}")
+        raise RuntimeError(f"Translation processing error: {str(e)}")
 
 
 # Validate request parameters
