@@ -1,3 +1,4 @@
+# Build stage: use Node 18 for compatibility
 FROM node:18-alpine as build
 
 WORKDIR /app
@@ -14,7 +15,7 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production environment
+# Production stage: serve with nginx
 FROM nginx:alpine
 
 # Copy built files from build stage
