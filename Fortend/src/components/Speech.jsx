@@ -13,7 +13,7 @@ const languageMap = {
   Chinese: "zh-CN",
   Japanese: "ja-JP",
   Russian: "ru-RU",
-  Arabic: "ar",  
+  Arabic: "ar",
   Hindi: "hi-IN",
 };
 
@@ -21,7 +21,7 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
   const [listening, setListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
-  
+
   useEffect(() => {
     // Initialize speech recognition
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -32,11 +32,11 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
 
         recognitionInstance.continuous = false;
         recognitionInstance.interimResults = true;
-        
+
         recognitionInstance.onresult = (event) => {
           const lastResult = event.results.length - 1;
           const transcript = event.results[lastResult][0].transcript;
-          
+
           // Check if it's a final result
           if (event.results[lastResult].isFinal) {
             console.log("Final transcript:", transcript);
@@ -81,7 +81,9 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
       // Use correct language code or fallback to English
       const langCode = languageMap[language] || "en-US";
       recognition.lang = langCode;
-      console.log(`Speech recognition language updated to: ${langCode} (${language})`);
+      console.log(
+        `Speech recognition language updated to: ${langCode} (${language})`
+      );
     }
   }, [language, recognition]);
   const startListening = () => {
@@ -93,13 +95,15 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
         } catch (e) {
           // Ignore errors when stopping, as it might not be active
         }
-        
+
         // Set the language before starting
         if (language) {
           recognition.lang = languageMap[language] || "en-US";
-          console.log(`Setting speech recognition language to: ${recognition.lang}`);
+          console.log(
+            `Setting speech recognition language to: ${recognition.lang}`
+          );
         }
-        
+
         // Short timeout to ensure any previous session is fully stopped
         setTimeout(() => {
           try {
@@ -121,12 +125,17 @@ export const SpeechRecognition = ({ language, onTranscript, disabled }) => {
     }
   };
   return (
-    <Tooltip title={errorMessage || (listening ? "Recording..." : "Record speech for translation")}>
+    <Tooltip
+      title={
+        errorMessage ||
+        (listening ? "Recording..." : "Record speech for translation")
+      }
+    >
       <span>
         <IconButton
           onClick={startListening}
           disabled={disabled || listening || !recognition}
-          color={errorMessage ? "error" : (listening ? "secondary" : "primary")}
+          color={errorMessage ? "error" : listening ? "secondary" : "primary"}
           aria-label="Record speech for translation"
         >
           <MicIcon />
@@ -146,26 +155,33 @@ export const TextToSpeech = ({ text, language }) => {
       try {
         const synth = window.speechSynthesis;
         const availableVoices = synth.getVoices();
-        
-        console.log("Available voices:", availableVoices.map(v => ({
-          name: v.name,
-          lang: v.lang,
-          default: v.default
-        })));
-        
-        // Log Arabic voices specifically
-        const arabicVoices = availableVoices.filter(v => 
-          v.lang === "ar" || 
-          v.lang.startsWith("ar-") || 
-          v.lang.includes("Arab")
+
+        console.log(
+          "Available voices:",
+          availableVoices.map((v) => ({
+            name: v.name,
+            lang: v.lang,
+            default: v.default,
+          }))
         );
-        
+
+        // Log Arabic voices specifically
+        const arabicVoices = availableVoices.filter(
+          (v) =>
+            v.lang === "ar" ||
+            v.lang.startsWith("ar-") ||
+            v.lang.includes("Arab")
+        );
+
         if (arabicVoices.length > 0) {
-          console.log("Arabic voices available:", arabicVoices.map(v => v.name));
+          console.log(
+            "Arabic voices available:",
+            arabicVoices.map((v) => v.name)
+          );
         } else {
           console.log("No Arabic voices found");
         }
-        
+
         setVoices(availableVoices);
       } catch (error) {
         console.error("Error loading voices:", error);
@@ -184,24 +200,28 @@ export const TextToSpeech = ({ text, language }) => {
     }
   }, []);
   const findVoiceForLanguage = (langCode) => {
-    console.log(`Finding voice for language code: ${langCode}, available voices:`, voices);
-    
+    console.log(
+      `Finding voice for language code: ${langCode}, available voices:`,
+      voices
+    );
+
     // Special handling for Arabic
     if (langCode === "ar" || langCode.startsWith("ar-")) {
       // Try to find any Arabic voice
       const arabicVoice = voices.find(
-        (v) => v.lang === "ar" || 
-               v.lang === "ar-SA" || 
-               v.lang.startsWith("ar-") ||
-               v.lang.includes("Arab")
+        (v) =>
+          v.lang === "ar" ||
+          v.lang === "ar-SA" ||
+          v.lang.startsWith("ar-") ||
+          v.lang.includes("Arab")
       );
-      
+
       if (arabicVoice) {
         console.log(`Found Arabic voice: ${arabicVoice.name}`);
         return arabicVoice;
       }
     }
-    
+
     // Try to find exact match first
     let voice = voices.find((v) => v.lang === langCode);
     if (voice) {
@@ -229,23 +249,25 @@ export const TextToSpeech = ({ text, language }) => {
       console.log(`Using English fallback voice: ${voice.name}`);
       return voice;
     }
-    
+
     console.log("No suitable voice found");
     return null;
   };
   const speakText = () => {
     if (!text || !speechSynthesis) {
-      console.error("Cannot speak: text is empty or speech synthesis not available");
+      console.error(
+        "Cannot speak: text is empty or speech synthesis not available"
+      );
       return;
     }
 
     try {
       // Cancel any ongoing speech
       speechSynthesis.cancel();
-      
+
       const langCode = languageMap[language] || "en-US";
       console.log(`Speaking text in language: ${language} (code: ${langCode})`);
-      
+
       const utterance = new SpeechSynthesisUtterance(text);
       const voice = findVoiceForLanguage(langCode);
 
@@ -255,7 +277,9 @@ export const TextToSpeech = ({ text, language }) => {
       } else {
         // If no suitable voice found, just set the language
         utterance.lang = langCode;
-        console.log(`No specific voice found, using language code: ${langCode}`);
+        console.log(
+          `No specific voice found, using language code: ${langCode}`
+        );
       }
 
       utterance.rate = 1;
@@ -288,7 +312,7 @@ export const TextToSpeech = ({ text, language }) => {
       } else {
         speechSynthesis.speak(utterance);
       }
-      
+
       // Chrome sometimes pauses after 15 seconds
       // This is a workaround for the Chrome bug
       const chromeWorkaround = setInterval(() => {
@@ -299,14 +323,13 @@ export const TextToSpeech = ({ text, language }) => {
         speechSynthesis.pause();
         speechSynthesis.resume();
       }, 14000);
-      
     } catch (error) {
       console.error("Error during speech synthesis:", error);
       setIsSpeaking(false);
     }
   };
   const [speakError, setSpeakError] = useState(null);
-  
+
   // Reset error state after 5 seconds
   useEffect(() => {
     if (speakError) {
@@ -314,7 +337,7 @@ export const TextToSpeech = ({ text, language }) => {
       return () => clearTimeout(timer);
     }
   }, [speakError]);
-  
+
   const handleSpeakClick = () => {
     try {
       setSpeakError(null);
@@ -324,14 +347,18 @@ export const TextToSpeech = ({ text, language }) => {
       setSpeakError("Failed to speak text");
     }
   };
-  
+
   return (
-    <Tooltip title={speakError || (isSpeaking ? "Speaking..." : "Listen to translation")}>
+    <Tooltip
+      title={
+        speakError || (isSpeaking ? "Speaking..." : "Listen to translation")
+      }
+    >
       <span>
         <IconButton
           onClick={handleSpeakClick}
           disabled={!text || (!speechSynthesis && !window.speechSynthesis)}
-          color={speakError ? "error" : (isSpeaking ? "secondary" : "primary")}
+          color={speakError ? "error" : isSpeaking ? "secondary" : "primary"}
           aria-label="Listen to translation"
         >
           <VolumeUpIcon />
